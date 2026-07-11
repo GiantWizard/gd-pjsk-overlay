@@ -1,0 +1,23 @@
+name: JS tests
+
+on:
+  push:
+    paths:
+      - 'shared/**'
+      - 'renderer/**'
+      - 'analyzer/**'
+      - 'test/**'
+      - 'fixtures/**'
+      - '.github/workflows/test.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node fixtures/make-fixtures.js
+      - run: node --test

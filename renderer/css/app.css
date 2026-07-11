@@ -1,0 +1,66 @@
+/* Layout for the Companion window (§7.5). Overlay mode hides the chrome via body.overlay. */
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--void);
+  color: #E7ECFF;
+  font-family: var(--face-ui);
+  overflow: hidden;
+}
+body.overlay { background: transparent; }
+body.overlay .chrome { display: none; }
+/* a single dark scrim behind the strip in overlay mode (§7 table) */
+body.overlay #stage::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(6,8,18,0.75) 60%);
+  pointer-events: none;
+}
+
+#stage { position: relative; width: 100%; height: 100%; }
+#highway { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* Header (§7.5): level title (display face) + gamemode (UI). */
+.chrome.header {
+  position: absolute; top: 18px; left: 24px; right: 24px;
+  display: flex; justify-content: space-between; align-items: baseline;
+  pointer-events: none; z-index: 2;
+}
+#level-title { font-family: var(--face-display); font-size: 22px; letter-spacing: .5px; }
+#gamemode { font-family: var(--face-ui); color: var(--dim); text-transform: lowercase; letter-spacing: 2px; }
+
+/* Footer readout (§7.5): the ONE display-face use + mono data + severity callout. */
+.chrome.footer {
+  position: absolute; left: 24px; right: 24px; bottom: 20px;
+  z-index: 2; pointer-events: none;
+}
+#percent { font-family: var(--face-display); font-size: 40px; line-height: 1; }
+#frame { font-family: var(--face-data); color: var(--dim); font-variant-numeric: tabular-nums; float: right; font-size: 18px; }
+#callout { font-family: var(--face-ui); font-size: 14px; margin-top: 6px; min-height: 18px; }
+#callout.s1 { color: var(--flag-s1); }
+#callout.s2 { color: var(--flag-s2); }
+#callout.clean { color: var(--clean); }
+
+/* Control bar — dev/companion only. */
+.chrome.controls {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 10px; align-items: center; z-index: 3;
+  background: rgba(10,13,26,0.7); border: 1px solid var(--rail-edge);
+  border-radius: 10px; padding: 8px 12px; backdrop-filter: blur(6px);
+  font-family: var(--face-ui); font-size: 13px;
+}
+.chrome.controls button, .chrome.controls label { color: #E7ECFF; }
+.chrome.controls button {
+  background: var(--rail); border: 1px solid var(--rail-edge); color: #E7ECFF;
+  border-radius: 7px; padding: 5px 10px; cursor: pointer; font-family: var(--face-ui);
+}
+.chrome.controls button:hover { border-color: var(--tap); }
+.chrome.controls input[type=range] { width: 110px; }
+#status { font-family: var(--face-data); font-size: 12px; }
+#status.connected { color: var(--hold); }
+#status.disconnected, #status.connecting { color: var(--dim); }
+#status.audio { color: var(--tap); }
+
+@media (prefers-reduced-motion: reduce) {
+  /* JS also honors this; CSS covers any incidental transitions. */
+  * { transition: none !important; }
+}

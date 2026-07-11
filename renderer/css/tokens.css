@@ -1,0 +1,20 @@
+/* Design tokens (§7.2) — the single source of truth for color and type.
+   Canvas code mirrors these in renderer/js/colors.js; keep the two in sync. */
+:root {
+  --void:      #0A0D1A; /* backdrop, companion only */
+  --rail:      #161C33; /* lane floor */
+  --rail-edge: #2E3A63; /* lane boundary hairlines */
+  --tap:       #3ADFF0; /* cyan — cube, robot, UFO flaps */
+  --hold:      #45E08C; /* green — ship, wave; the ribbon color */
+  --flip:      #F05FA8; /* magenta — ball, swing, spider (state changes) */
+  --judgment:  #FFFFFF; /* the line. pure white core. */
+  --clean:     #FFD75E; /* gold — RESERVED reward color. See §7.2. */
+  --flag-s2:   #FF9838; /* amber — inefficient */
+  --flag-s1:   #FF4657; /* red — critical */
+  --dim:       #6B77A6; /* labels, inactive */
+
+  /* Type (§7.2). Display used ONCE (the big percent); everything else UI or data. */
+  --face-display: 'Zen Maru Gothic', system-ui, sans-serif;
+  --face-ui:      'Inter Tight', system-ui, sans-serif;
+  --face-data:    'JetBrains Mono', ui-monospace, monospace;
+}
