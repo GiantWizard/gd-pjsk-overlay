@@ -11,6 +11,17 @@
 // Windows Geode headers; confirm against the SDK version you build with. This file is not
 // compiled in the JS repo host — build it via the CI workflow (.github/workflows) or a
 // Windows box, per §5.1.
+// Must come before Geode.hpp: Geode pulls in <windows.h>, which by default drags in the
+// legacy <winsock.h> unless <winsock2.h> has already been included first. If that happens,
+// net.hpp's own <winsock2.h> include collides with it (duplicate sockaddr/fd_set/timeval
+// definitions). Including winsock2.h here first sets the _WINSOCKAPI_ guard that makes
+// windows.h skip winsock.h later in this translation unit.
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+
 #include <Geode/Geode.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/GJBaseGameLayer.hpp>
