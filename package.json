@@ -1,0 +1,16 @@
+{
+  "name": "gd-pjsk-overlay",
+  "version": "0.1.0",
+  "description": "PJSK-style incoming-note overlay for Geometry Dash 2.2 — reads macros + telemetry, renders a synced note highway, flags bad movement. Read-only study/showcase tool.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "analyze": "node analyzer/cli.js",
+    "make-fixtures": "node fixtures/make-fixtures.js",
+    "serve": "node scripts/serve.js",
+    "mock-tap": "node scripts/mock-tap.js"
+  },
+  "keywords": ["geometry-dash", "pjsk", "overlay", "gdr", "macro", "rhythm"],
+  "license": "MIT"
+}

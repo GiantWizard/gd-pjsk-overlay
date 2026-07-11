@@ -1,0 +1,33 @@
+{
+  "geode": "4.0.1",
+  "gd": { "win": "2.2074" },
+  "id": "gdhighway.tap",
+  "name": "GD Highway Sync Tap",
+  "version": "v0.1.0",
+  "developer": "gd-pjsk-overlay",
+  "description": "Emits the level playhead over a localhost WebSocket (live) or dumps per-tick physics to JSONL (capture). Read-only companion for the GD Note Highway overlay.",
+  "tags": ["utility", "developer"],
+  "settings": {
+    "mode": {
+      "name": "Mode",
+      "description": "live = stream the playhead over WebSocket for the overlay. capture = dump physics telemetry to a file while replaying a macro.",
+      "type": "string",
+      "default": "live",
+      "one-of": ["live", "capture"]
+    },
+    "port": {
+      "name": "WebSocket port",
+      "description": "Localhost port the renderer connects to (live mode).",
+      "type": "int",
+      "default": 8787,
+      "min": 1024,
+      "max": 65535
+    },
+    "capture-dir": {
+      "name": "Capture directory",
+      "description": "Where to write <level>.telemetry.jsonl in capture mode. Empty = the mod save dir.",
+      "type": "string",
+      "default": ""
+    }
+  }
+}

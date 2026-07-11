@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GD Note Highway</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%230A0D1A'/><rect x='2' y='9' width='12' height='2' fill='%23fff'/><rect x='6' y='3' width='4' height='4' rx='1' fill='%233ADFF0'/></svg>" />
+  <meta name="color-scheme" content="dark" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Inter+Tight:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="stage">
+    <canvas id="highway"></canvas>
+
+    <div class="chrome controls">
+      <button id="mode">mode: companion</button>
+      <label><input type="checkbox" id="simplify" checked /> simplify</label>
+      <label>look <input type="range" id="lookahead" min="600" max="3000" step="100" value="1500" /><span id="lookahead-val">1500ms</span></label>
+      <button id="playpause">play/pause</button>
+      <button id="connect">connect tap</button>
+      <label>macro <input type="file" id="macro-file" accept=".gdr,.json,.gdr2,.gdph" /></label>
+      <label>telem <input type="file" id="telemetry-file" accept=".jsonl,.json" /></label>
+      <span id="status" class="audio">demo</span>
+    </div>
+
+    <div class="chrome header">
+      <span id="level-title">demo</span>
+      <span id="gamemode"></span>
+    </div>
+
+    <div class="chrome footer">
+      <span id="frame"></span>
+      <div id="percent">0.0%</div>
+      <div id="callout"></div>
+    </div>
+  </div>
+
+  <!-- severity report panel (companion study aid) -->
+  <pre id="report" class="chrome" style="position:absolute;right:16px;bottom:90px;max-width:42ch;
+    font-family:var(--face-data);font-size:11px;color:var(--dim);white-space:pre-wrap;
+    background:rgba(10,13,26,.6);border:1px solid var(--rail-edge);border-radius:8px;padding:10px;
+    max-height:40vh;overflow:auto;z-index:2;"></pre>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
