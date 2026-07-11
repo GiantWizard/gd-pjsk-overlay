@@ -26,6 +26,12 @@ jobs:
           # windows-latest runners (a consteval/Clang strictness incompatibility).
           # nightly pins a newer fmt specifically past that bug.
           sdk: nightly
+          # Geode's CMake setup auto-generates a precompiled header for the mod target
+          # that independently re-includes Geode.hpp (and thus <windows.h>) ahead of our
+          # own translation unit, so any include-order fix inside main.cpp/net.hpp never
+          # reaches it — the legacy <winsock.h> it drags in collides with our <winsock2.h>
+          # regardless. This mod is small enough that PCH buys nothing; disable it.
+          configure-args: -DGEODE_DISABLE_PRECOMPILED_HEADERS=ON
 
   package:
     name: Package artifacts
