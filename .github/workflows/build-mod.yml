@@ -20,7 +20,7 @@ jobs:
         uses: geode-sdk/build-geode-mod@main
         with:
           target: Win64
-          working-directory: mod
+          path: mod
 
   package:
     name: Package artifacts
