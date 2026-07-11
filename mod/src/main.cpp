@@ -7,8 +7,8 @@
 // internal time accumulator (§2.2 default) — no FMOD hook; ±30ms drift is invisible when
 // reading rather than playing (§0.5).
 //
-// NOTE: Geode member names below (m_time, m_player1, m_isShip, …) target the current
-// Windows Geode headers; confirm against the SDK version you build with. This file is not
+// NOTE: Geode member names below (m_gameState.m_levelTime, m_player1, m_isShip, …) are
+// verified against the GD 2.2081 bindings the CI build resolves to. This file is not
 // compiled in the JS repo host — build it via the CI workflow (.github/workflows) or a
 // Windows box, per §5.1.
 // Must come before Geode.hpp: Geode pulls in <windows.h>, which by default drags in the
@@ -102,7 +102,7 @@ void writeTelemetry(PlayLayer* pl) {
   snprintf(buf, sizeof(buf),
     "{\"f\":%llu,\"ms\":%.1f,\"x\":%.1f,\"y\":%.1f,\"vy\":%.3f,\"rot\":%.1f,"
     "\"mode\":\"%s\",\"grav\":%d,\"held\":%s,\"dead\":%s}\n",
-    (unsigned long long)t.frame, pl->m_time * 1000.0,
+    (unsigned long long)t.frame, pl->m_gameState.m_levelTime * 1000.0,
     p->getPositionX(), p->getPositionY(), p->m_yVelocity, p->getRotation(),
     modeName(p), p->m_isUpsideDown ? -1 : 1,
     t.held ? "true" : "false", p->m_isDead ? "true" : "false");
@@ -130,7 +130,7 @@ class $modify(TapGJBGL, GJBaseGameLayer) {
     if (!pl) return;
     if (t.mode == Mode::Live) {
       // Clock = level time accumulator (§2.2). speed = game speed multiplier.
-      emitTick(pl->m_time * 1000.0, this->m_gameState.m_timeWarp, pl->m_isPaused);
+      emitTick(pl->m_gameState.m_levelTime * 1000.0, this->m_gameState.m_timeWarp, pl->m_isPaused);
       t.ws.poll(); // accept/handshake a (re)connecting renderer
     } else {
       writeTelemetry(pl);
@@ -159,7 +159,7 @@ class $modify(TapPlayLayer, PlayLayer) {
     t.active = true;
     t.frame = 0;
     bool startpos = this->m_startPosObject != nullptr;
-    double songOffset = startpos ? this->m_time * 1000.0 : 0.0; // §6.2: begin mid-song
+    double songOffset = startpos ? this->m_gameState.m_levelTime * 1000.0 : 0.0; // §6.2: begin mid-song
 
     if (t.mode == Mode::Capture) {
       t.file.open(captureName(this), std::ios::trunc);
@@ -184,7 +184,7 @@ class $modify(TapPlayLayer, PlayLayer) {
     PlayLayer::resetLevel();
     Tap::get().frame = 0;
     char buf[64];
-    snprintf(buf, sizeof(buf), "{\"t\":\"reset\",\"ms\":%.1f}", this->m_time * 1000.0);
+    snprintf(buf, sizeof(buf), "{\"t\":\"reset\",\"ms\":%.1f}", this->m_gameState.m_levelTime * 1000.0);
     emitEvent(buf);
   }
 
@@ -192,10 +192,10 @@ class $modify(TapPlayLayer, PlayLayer) {
     PlayLayer::pauseGame(p);
     emitEvent("{\"t\":\"pause\"}");
   }
-  void resumeGame() {
-    PlayLayer::resumeGame();
+  void resume() {
+    PlayLayer::resume();
     char buf[64];
-    snprintf(buf, sizeof(buf), "{\"t\":\"resume\",\"ms\":%.1f}", this->m_time * 1000.0);
+    snprintf(buf, sizeof(buf), "{\"t\":\"resume\",\"ms\":%.1f}", this->m_gameState.m_levelTime * 1000.0);
     emitEvent(buf);
   }
 
