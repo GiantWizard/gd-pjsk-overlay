@@ -30,21 +30,61 @@ tested**; the mod (Phases 2–5's Wine side) is written and CI-buildable.
 
 ---
 
-## Quick start (renderer — no Wine, no build step)
+## Where the code lives
+
+Repo: `GiantWizard/gd-pjsk-overlay` on GitHub.
+Branch: **`claude/gd-note-highway-a1bh3h`** — everything in this README is on that branch;
+it has not been merged into `main` yet, so make sure you check it out (not `main`, which is
+still just the placeholder initial commit).
 
 ```bash
-node scripts/serve.js         # http://127.0.0.1:8080/renderer/
+git clone https://github.com/GiantWizard/gd-pjsk-overlay.git
+cd gd-pjsk-overlay
+git checkout claude/gd-note-highway-a1bh3h
 ```
 
-Open the URL. It boots in **demo mode** with synthetic data and a self-running clock — the
+---
+
+## Setup
+
+### Prerequisites
+
+- **Node.js 22+** (uses native `node --test`, no test framework dependency) — check with
+  `node --version`.
+- A browser (Chrome/Edge/Firefox/Safari all fine) to view the renderer.
+- **Only if you want the live in-game overlay**, not just the offline renderer/analyzer:
+  - macOS with GD running under Wine/CrossOver (or a genuine Windows box).
+  - [Geode](https://geode-sdk.org/) installed into that GD install (Windows build).
+
+No `npm install` is required — the renderer and analyzer are dependency-free (the repo
+even ships its own tiny msgpack decoder rather than pulling one in), so `git clone` +
+`node` is enough for everything except building the C++ mod.
+
+### 1. Renderer (no Wine, no build step, works today)
+
+```bash
+node scripts/serve.js         # serves at http://127.0.0.1:8080/renderer/
+```
+
+Open that URL. It boots in **demo mode** with synthetic data and a self-running clock — the
 highway animates immediately, gold where the run scored clean, amber/red where it didn't.
+This is the whole point of Phase 1 (§5.3): you can judge the visual design with zero GD,
+zero Wine, zero C++.
+
 Load a real `.gdr` (and optional `.telemetry.jsonl`) with the file pickers, or click
-**connect tap** to attach to the live mod over WebSocket.
+**connect tap** to attach to the live mod over WebSocket once it's running (step 3 below).
 
 Controls: toggle **companion ↔ overlay** mode, **simplify** (collapse dense bursts to
 squiggles, §3.3), **lookahead** (scroll speed), **play/pause** (demo clock).
 
-## Analyzer (offline movement scoring)
+To develop the live-WS path without Wine, run the bundled mock tap in a second terminal
+instead of the real mod — it speaks the same wire protocol:
+
+```bash
+node scripts/mock-tap.js      # ws://127.0.0.1:8787, loops a fake level
+```
+
+### 2. Analyzer (offline movement scoring, no Wine)
 
 ```bash
 node fixtures/make-fixtures.js
@@ -53,12 +93,50 @@ node analyzer/cli.js fixtures/sample.gdr.json fixtures/sample.telemetry.jsonl
 ```
 
 Emits a severity report (S1 death, S2 jitter/ship-saw/wave-panic/double-flip/ufo-saw) and
-annotates each note with severity for the renderer's heat-map coloring.
+annotates each note with severity for the renderer's heat-map coloring. Point it at your
+own macro + telemetry files the same way once you have real captures (step 3).
+
+### 3. The sync-tap mod (only needed for live in-game overlay / capture mode)
+
+The mod is Windows C++ and can't be built on macOS/Linux directly. Two ways to get the
+`.geode`:
+
+**A — CI build (recommended):** push to this branch (or trigger manually) and download the
+artifact from the `Build mod` GitHub Action, which compiles on `windows-latest`:
+1. GitHub → Actions → **Build mod** → run/select the latest run for this branch.
+2. Download the `gdhighway-tap.geode` artifact.
+
+**B — Build it yourself on Windows:** install the [Geode CLI](https://docs.geode-sdk.org/),
+then from `mod/`:
+```bash
+geode build
+```
+
+Then, regardless of how you built it:
+```bash
+# drop the .geode into the Wine prefix's GD mods folder, e.g.:
+cp gdhighway-tap.geode ~/.wine/drive_c/Program\ Files\ \(x86\)/Steam/steamapps/common/Geometry\ Dash/geode/mods/
+```
+(adjust the path for your actual Wine prefix / CrossOver bottle / Steam library location.)
+
+Launch GD, open the mod's settings (Geode in-game menu) and set:
+- **Mode**: `live` for the overlay, `capture` while replaying a macro through xdBot to
+  produce a `.telemetry.jsonl` for the analyzer.
+- **Port**: leave at `8787` unless it conflicts with something else.
+- **Capture directory**: where `<level>.telemetry.jsonl` gets written in capture mode.
+
+With the mod running in `live` mode, go back to the renderer (step 1) and click
+**connect tap** — it should replace the demo clock with the real in-game playhead.
+
+⚠️ **The mod has not been verified against a real Geode build or a real GD install** — it
+was written from the public Geode API and conforms to the tested wire protocol, but member
+names may need small adjustments against whatever Geode SDK version you build with. Treat
+first launch as a debug session, not a sure thing.
 
 ## Tests
 
 ```bash
-node --test          # 30 unit tests across parsing, notes, clustering, geometry,
+node --test          # 35 unit tests across parsing, notes, clustering, geometry,
                      # playhead interpolation, telemetry, determinism, and the pipeline
 PW_PATH=$(npm root -g)/playwright node scripts/smoke.mjs   # headless renderer smoke
 ```
