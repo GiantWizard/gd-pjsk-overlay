@@ -21,6 +21,11 @@ jobs:
         with:
           target: Win64
           path: mod
+          # The SDK version resolved from mod.json ("given", the default) pins an fmt
+          # release that fails to compile under the Clang shipped on current
+          # windows-latest runners (a consteval/Clang strictness incompatibility).
+          # nightly pins a newer fmt specifically past that bug.
+          sdk: nightly
 
   package:
     name: Package artifacts
