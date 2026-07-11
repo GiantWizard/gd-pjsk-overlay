@@ -12,6 +12,11 @@
 #include <cstring>
 
 #ifdef _WIN32
+// Defensive: if this header is ever included before anything has pulled in <windows.h>,
+// make sure winsock2.h wins over the legacy winsock.h (see the note in main.cpp).
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
