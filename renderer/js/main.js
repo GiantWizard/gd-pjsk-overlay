@@ -5,7 +5,7 @@
 // highway animates with zero Wine and zero files. Load real files or connect the WS tap to
 // replace the demo.
 
-import { parseMacro } from '../../shared/gdr.js';
+import { MacroError, parseMacro } from '../../shared/gdr.js';
 import { parseTelemetry } from '../../shared/telemetry.js';
 import { synthMacro, synthTelemetry } from '../../shared/synth.js';
 import { buildNoteList } from '../../shared/notes.js';
@@ -134,7 +134,20 @@ async function loadFile(input, kind) {
   try {
     if (kind === 'macro') {
       const buf = new Uint8Array(await file.arrayBuffer());
-      state._macro = parseMacro(buf);
+      try {
+        state._macro = parseMacro(buf);
+      } catch (err) {
+        // A genuinely-missing-TPS macro (rare now that GDR2 parses correctly — this is a
+        // real gap only for GDR1 JSON exports that truly omit the field) gets a manual
+        // retry via the #fallback-tps input, instead of just failing.
+        if (!isMissingTpsError(err)) throw err;
+        const fallbackTps = Number($('fallback-tps').value);
+        if (!Number.isFinite(fallbackTps) || fallbackTps <= 0) {
+          throw new Error('Macro has no TPS metadata and the manual TPS is invalid.');
+        }
+        state._macro = parseMacro(buf, { tps: fallbackTps });
+        $('report').textContent = `⚠ Macro has no TPS metadata; using manual TPS ${fallbackTps}.`;
+      }
     } else {
       state._telemetryText = await file.text();
     }
@@ -148,6 +161,10 @@ async function loadFile(input, kind) {
   const macro = state._macro;
   const telemetry = state._telemetryText ? parseTelemetry(state._telemetryText) : null;
   if (macro) applyData(macro, telemetry, { autoClock: !state.clock || state.clock instanceof DemoClock });
+}
+
+function isMissingTpsError(err) {
+  return err instanceof MacroError && /no framerate\/fps\/tps field/i.test(err.message);
 }
 
 // ── WS tap (Phase 2/3) ───────────────────────────────────────────────────────
