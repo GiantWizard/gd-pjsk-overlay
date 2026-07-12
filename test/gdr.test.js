@@ -54,6 +54,15 @@ test('parseMacro reads GDR2 msgpack bytes', () => {
   assert.equal(m.inputs[1].ms, 100);
 });
 
+test('parseMacro accepts explicit tps when metadata is missing', () => {
+  const raw = {
+    inputs: [{ frame: 0, btn: 1, down: true }, { frame: 24, btn: 1, down: false }],
+  };
+  const m = parseMacro(raw, { tps: 240 });
+  assert.equal(m.tps, 240);
+  assert.equal(m.inputs[1].ms, 100);
+});
+
 // ── minimal msgpack encoder, test-only, mirrors the decoder's supported subset ──
 function encodeSimple(value) {
   const bytes = [];
