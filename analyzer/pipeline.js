@@ -19,9 +19,7 @@ export function analyze(macro, telemetry, opts = {}) {
   for (const seg of segments) scoreSegment(seg);
   attributeToNotes(segments, notes);
 
-  const totalMs = macro.duration != null
-    ? macro.duration * 1000
-    : (telemetry.length ? telemetry[telemetry.length - 1].ms : 0);
+  const totalMs = macro.durationMs ?? (telemetry.length ? telemetry[telemetry.length - 1].ms : 0);
   const report = buildReport(segments, totalMs);
 
   return { ok: true, capture, notes, segments, report, totalMs };

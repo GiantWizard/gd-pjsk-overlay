@@ -109,7 +109,7 @@ function loadDemo() {
 function applyData(macro, telemetry, { autoClock } = {}) {
   state.telemetry = telemetry;
   state.level = macro.level;
-  state.durationMs = (macro.duration ?? (telemetry?.at(-1)?.ms / 1000) ?? 16.5) * 1000;
+  state.durationMs = macro.durationMs ?? telemetry?.at(-1)?.ms ?? 16500;
   $('level-title').textContent = macro.level.name || macro.level.id || 'level';
 
   if (telemetry && telemetry.length) {
@@ -131,11 +131,19 @@ function applyData(macro, telemetry, { autoClock } = {}) {
 async function loadFile(input, kind) {
   const file = input.files[0];
   if (!file) return;
-  if (kind === 'macro') {
-    const buf = new Uint8Array(await file.arrayBuffer());
-    state._macro = parseMacro(buf);
-  } else {
-    state._telemetryText = await file.text();
+  try {
+    if (kind === 'macro') {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      state._macro = parseMacro(buf);
+    } else {
+      state._telemetryText = await file.text();
+    }
+  } catch (e) {
+    console.error(`failed to load ${kind}:`, e);
+    setStatus('load failed', 'disconnected');
+    $('report').textContent = `⚠ Failed to load ${kind}: ${e.message}`;
+    input.value = ''; // allow re-selecting the same filename after fixing it
+    return;
   }
   const macro = state._macro;
   const telemetry = state._telemetryText ? parseTelemetry(state._telemetryText) : null;

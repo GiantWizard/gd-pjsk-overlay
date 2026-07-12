@@ -57,7 +57,7 @@ git checkout claude/gd-note-highway-a1bh3h
   - [Geode](https://geode-sdk.org/) installed into that GD install (Windows build).
 
 No `npm install` is required — the renderer and analyzer are dependency-free (the repo
-even ships its own tiny msgpack decoder rather than pulling one in), so `git clone` +
+even ships its own tiny GDR2 binary decoder rather than pulling one in), so `git clone` +
 `node` is enough for everything except building the C++ mod.
 
 ### 1. Renderer (no Wine, no build step, works today)
@@ -146,7 +146,7 @@ PW_PATH=$(npm root -g)/playwright node scripts/smoke.mjs   # headless renderer s
 ## Layout
 
 ```
-shared/      protocol constants (incl. the ONE global offset, §6.3), GDR+msgpack+gdph
+shared/      protocol constants (incl. the ONE global offset, §6.3), GDR/GDR2(binary)/gdph
              parsing, note derivation, display clustering, telemetry, synthetic data
 renderer/    index.html + css tokens + canvas highway (companion & overlay), playhead
              interpolation, reconnecting WS client, in-browser analyzer wiring
