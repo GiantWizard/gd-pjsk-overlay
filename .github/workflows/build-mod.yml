@@ -32,6 +32,10 @@ jobs:
           # reaches it — the legacy <winsock.h> it drags in collides with our <winsock2.h>
           # regardless. This mod is small enough that PCH buys nothing; disable it.
           configure-args: -DGEODE_DISABLE_PRECOMPILED_HEADERS=ON
+          # Without this, the build step never uploads its output for the combine job to
+          # find, so "Package artifacts" silently succeeds with zero files (as just
+          # happened) instead of producing gdhighway-tap.geode.
+          combine: true
 
   package:
     name: Package artifacts
