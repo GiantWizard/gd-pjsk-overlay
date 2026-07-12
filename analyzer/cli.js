@@ -36,7 +36,20 @@ function main() {
   }
   const [macroPath, telePath] = pos;
 
-  const macroBytes = readFileSync(macroPath);
+  let macroBytes, teleText;
+  try {
+    macroBytes = readFileSync(macroPath);
+  } catch (e) {
+    console.error(`✗ Can't read macro file "${macroPath}": ${e.code === 'ENOENT' ? 'no such file' : e.message}`);
+    process.exit(1);
+  }
+  try {
+    teleText = readFileSync(telePath, 'utf-8');
+  } catch (e) {
+    console.error(`✗ Can't read telemetry file "${telePath}": ${e.code === 'ENOENT' ? 'no such file' : e.message}`);
+    process.exit(1);
+  }
+
   let macro;
   try {
     macro = parseMacro(new Uint8Array(macroBytes), opts.tps != null ? { tps: opts.tps } : {});
@@ -45,7 +58,7 @@ function main() {
     if (e instanceof MacroError) console.error('  (pass --tps <n> to override, e.g. for an unusual export)');
     process.exit(1);
   }
-  const telemetry = parseTelemetry(readFileSync(telePath, 'utf-8'));
+  const telemetry = parseTelemetry(teleText);
 
   console.log(`macro:    ${macro.botName ?? '?'} · ${macro.tps} TPS · ${macro.inputs.length} inputs · ` +
     `level ${macro.level.name ?? macro.level.id ?? '?'}`);
