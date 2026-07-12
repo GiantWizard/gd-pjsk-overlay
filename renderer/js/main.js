@@ -109,7 +109,7 @@ function loadDemo() {
 function applyData(macro, telemetry, { autoClock } = {}) {
   state.telemetry = telemetry;
   state.level = macro.level;
-  state.durationMs = (macro.duration ?? (telemetry?.at(-1)?.ms / 1000) ?? 16.5) * 1000;
+  state.durationMs = macro.durationMs ?? telemetry?.at(-1)?.ms ?? 16500;
   $('level-title').textContent = macro.level.name || macro.level.id || 'level';
 
   if (telemetry && telemetry.length) {
@@ -131,31 +131,32 @@ function applyData(macro, telemetry, { autoClock } = {}) {
 async function loadFile(input, kind) {
   const file = input.files[0];
   if (!file) return;
-  if (kind === 'macro') {
-    const buf = new Uint8Array(await file.arrayBuffer());
-    try {
-      state._macro = parseMacro(buf);
-    } catch (err) {
-      if (isMissingTpsError(err)) {
+  try {
+    if (kind === 'macro') {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      try {
+        state._macro = parseMacro(buf);
+      } catch (err) {
+        // A genuinely-missing-TPS macro (rare now that GDR2 parses correctly — this is a
+        // real gap only for GDR1 JSON exports that truly omit the field) gets a manual
+        // retry via the #fallback-tps input, instead of just failing.
+        if (!isMissingTpsError(err)) throw err;
         const fallbackTps = Number($('fallback-tps').value);
-        if (Number.isFinite(fallbackTps) && fallbackTps > 0) {
-          state._macro = parseMacro(buf, { tps: fallbackTps });
-          $('report').textContent = `⚠ Macro has no TPS metadata; using manual TPS ${fallbackTps}.`;
-        } else {
-          setStatus('invalid tps', 'disconnected');
-          $('report').textContent = '⚠ Macro has no TPS metadata and the manual TPS is invalid.';
-          console.error(err);
-          return;
+        if (!Number.isFinite(fallbackTps) || fallbackTps <= 0) {
+          throw new Error('Macro has no TPS metadata and the manual TPS is invalid.');
         }
-      } else {
-        setStatus('macro load failed', 'disconnected');
-        $('report').textContent = `⚠ ${err instanceof Error ? err.message : String(err)}`;
-        console.error(err);
-        return;
+        state._macro = parseMacro(buf, { tps: fallbackTps });
+        $('report').textContent = `⚠ Macro has no TPS metadata; using manual TPS ${fallbackTps}.`;
       }
+    } else {
+      state._telemetryText = await file.text();
     }
-  } else {
-    state._telemetryText = await file.text();
+  } catch (e) {
+    console.error(`failed to load ${kind}:`, e);
+    setStatus('load failed', 'disconnected');
+    $('report').textContent = `⚠ Failed to load ${kind}: ${e.message}`;
+    input.value = ''; // allow re-selecting the same filename after fixing it
+    return;
   }
   const macro = state._macro;
   const telemetry = state._telemetryText ? parseTelemetry(state._telemetryText) : null;

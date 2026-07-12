@@ -42,17 +42,10 @@ test('parseMacro accepts a raw JSON string and the synthetic macro', () => {
   assert.ok(m.inputs.length > 20);
 });
 
-test('parseMacro reads GDR2 msgpack bytes', () => {
-  // hand-encode a tiny msgpack map equivalent to a GDR header
-  const bytes = encodeSimple({
-    framerate: 240,
-    inputs: [{ frame: 0, btn: 1, down: true }, { frame: 24, btn: 1, down: false }],
-  });
-  const m = parseMacro(bytes);
-  assert.equal(m.tps, 240);
-  assert.equal(m.inputs.length, 2);
-  assert.equal(m.inputs[1].ms, 100);
-});
+// GDR2 binary decoding is covered in test/gdr2.test.js — real GDR2 is a custom positional
+// binary stream, not msgpack (see shared/gdr2.js's header comment for why an earlier
+// version of this test, which hand-encoded a fake "GDR2 msgpack" fixture, was testing a
+// wrong premise).
 
 test('parseMacro accepts explicit tps when metadata is missing', () => {
   const raw = {
@@ -62,36 +55,3 @@ test('parseMacro accepts explicit tps when metadata is missing', () => {
   assert.equal(m.tps, 240);
   assert.equal(m.inputs[1].ms, 100);
 });
-
-// ── minimal msgpack encoder, test-only, mirrors the decoder's supported subset ──
-function encodeSimple(value) {
-  const bytes = [];
-  const enc = new TextEncoder();
-  function w(v) {
-    if (v === null) { bytes.push(0xc0); return; }
-    if (v === true) { bytes.push(0xc3); return; }
-    if (v === false) { bytes.push(0xc2); return; }
-    if (typeof v === 'number') {
-      if (Number.isInteger(v) && v >= 0 && v <= 0x7f) { bytes.push(v); return; }
-      // use float64 for everything else
-      const buf = new ArrayBuffer(8); new DataView(buf).setFloat64(0, v);
-      bytes.push(0xcb, ...new Uint8Array(buf)); return;
-    }
-    if (typeof v === 'string') {
-      const s = enc.encode(v);
-      bytes.push(0xd9, s.length, ...s); return;
-    }
-    if (Array.isArray(v)) {
-      bytes.push(0xdc, (v.length >> 8) & 0xff, v.length & 0xff);
-      v.forEach(w); return;
-    }
-    if (typeof v === 'object') {
-      const keys = Object.keys(v);
-      bytes.push(0xde, (keys.length >> 8) & 0xff, keys.length & 0xff);
-      for (const k of keys) { w(k); w(v[k]); } return;
-    }
-    throw new Error('unsupported ' + typeof v);
-  }
-  w(value);
-  return new Uint8Array(bytes);
-}

@@ -5,13 +5,16 @@
 // it wrong is a 4× error that "kind of works then drifts insanely" (§3.1).
 //
 // Supported inputs, easiest-first:
-//   • GDR (JSON, v1)      — xdBot / Eclipse / MegaHack de-facto standard
-//   • GDR2 (msgpack, v2)  — same fields, binary container
-//   • .gdph (Reclick)     — plain JSON
+//   • GDR (JSON, v1)              — xdBot / Eclipse / MegaHack de-facto standard
+//   • GDR2 (custom positional binary, v2) — see shared/gdr2.js; NOT msgpack, despite the
+//     name resembling it — a real generic msgpack decoder was tried here first and it
+//     silently mis-parses these files (the magic byte 'G'=0x47 is coincidentally a valid
+//     one-byte msgpack fixint, so decoding "succeeds" while discarding the entire file).
+//   • .gdph (Reclick)             — plain JSON
 //
 // Output is a normalized macro; see normalizeMacro() for the shape.
 
-import { decodeMsgpack } from './msgpack.js';
+import { isGdr2, decodeGdr2 } from './gdr2.js';
 
 // Button ints in GDR/GD: 1 = jump/hold, 2 = left, 3 = right (platformer).
 const BUTTON_NAME = { 1: 'jump', 2: 'left', 3: 'right' };
@@ -50,19 +53,23 @@ export function frameToMs(frame, tps) {
 
 // ── Format detection ──────────────────────────────────────────────────────────
 // `data` may be a string (JSON), an object (already-parsed JSON), or a Uint8Array
-// (a file's raw bytes — could be JSON text or GDR2 msgpack).
+// (a file's raw bytes — could be JSON text or GDR2 binary).
 export function parseMacro(data, opts = {}) {
   if (data instanceof Uint8Array || data instanceof ArrayBuffer) {
     const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
-    // GDR2 msgpack begins with a map marker (0x80–0x8f fixmap, or 0xde/0xdf).
     // JSON text begins with whitespace, '{' (0x7b) or '['. Disambiguate on the first
-    // non-whitespace byte.
+    // non-whitespace byte; GDR2 binary begins with the literal magic bytes "GDR".
     const first = firstNonWhitespaceByte(bytes);
     if (first === 0x7b /* { */ || first === 0x5b /* [ */) {
       return parseMacro(new TextDecoder('utf-8').decode(bytes), opts);
     }
-    const obj = decodeMsgpack(bytes);
-    return normalizeGdr(obj, opts);
+    if (isGdr2(bytes)) {
+      return normalizeGdr2(decodeGdr2(bytes, opts), opts);
+    }
+    throw new MacroError(
+      `Unrecognized macro file: not JSON and missing the GDR2 magic bytes ` +
+      `(first byte 0x${first.toString(16)}).`
+    );
   }
 
   const obj = typeof data === 'string' ? JSON.parse(data) : data;
@@ -89,7 +96,7 @@ function looksLikeGdph(obj) {
     pick(obj, ['framerate', 'fps', 'tps']) === undefined;
 }
 
-// ── GDR (v1 JSON and v2 msgpack share this shape after decode) ────────────────
+// ── GDR1 (JSON) ────────────────────────────────────────────────────────────────
 function normalizeGdr(raw, opts) {
   const tps = opts.tps ?? readTps(raw);
   const level = raw.levelInfo || raw.level || {};
@@ -123,6 +130,45 @@ function normalizeGdr(raw, opts) {
     },
     platformer: Boolean(pick(raw, ['platformer', 'isPlatformer'], false)),
     duration: pick(raw, ['duration'], null),
+    // GDR1 JSON's convention is seconds; compute the canonical ms form here, once, where
+    // the unit is actually known (§ duration-units fix — see normalizeGdr2 for the
+    // frame-based GDR2 equivalent).
+    durationMs: pick(raw, ['duration'], null) != null ? Number(pick(raw, ['duration'], null)) * 1000 : null,
+    inputs,
+  });
+}
+
+// ── GDR2 (custom positional binary — see shared/gdr2.js) ──────────────────────
+// Unlike normalizeGdr's defensive pick()-based alias-hunting (needed because GDR1 JSON
+// exporters disagree on field names), decodeGdr2's output shape is exact and unambiguous
+// by construction — every field is a fixed position in the binary stream, so there's
+// nothing to guess or alias here.
+function normalizeGdr2(raw, opts) {
+  const tps = opts.tps ?? raw.framerate;
+
+  const inputs = raw.inputs.map((inp) => ({
+    frame: inp.frame,
+    ms: frameToMs(inp.frame, tps),
+    down: inp.down,
+    button: BUTTON_NAME[inp.button] || 'jump',
+    player: inp.player2 ? 2 : 1,
+    phys: inp.phys ?? null,
+  })).sort((a, b) => a.frame - b.frame || (a.down === b.down ? 0 : a.down ? 1 : -1));
+  // Sort is required here (unlike a no-op elsewhere): player-1 and player-2 blocks each
+  // have their own independent delta accumulator in the wire format, so the flat
+  // concatenation of inputs is NOT globally frame-sorted across players.
+
+  return normalizeMacro({
+    source: 'gdr2',
+    tps,
+    gameVersion: raw.gameVersion ?? null,
+    botName: raw.botInfo?.name ?? null,
+    botVersion: raw.botInfo?.version ?? null,
+    level: { id: raw.levelInfo?.id ?? null, name: raw.levelInfo?.name ?? null },
+    platformer: !!raw.platformer,
+    duration: raw.duration ?? null, // FRAMES, not seconds — see durationMs
+    durationMs: raw.duration != null ? frameToMs(raw.duration, tps) : null,
+    deaths: raw.deaths ?? [],
     inputs,
   });
 }
@@ -155,6 +201,7 @@ function normalizeGdph(raw, opts) {
     level: { id: null, name: null },
     platformer: false,
     duration: null,
+    durationMs: null,
     inputs,
   });
 }
@@ -172,7 +219,10 @@ function normalizeMacro(m) {
     botVersion: m.botVersion ?? null,
     level: m.level ?? { id: null, name: null },
     platformer: m.platformer || false,
-    duration: m.duration ?? null,
+    duration: m.duration ?? null, // unit is format-dependent (seconds for GDR1, frames for
+                                   // GDR2) — consumers should use durationMs instead.
+    durationMs: m.durationMs ?? null,
+    deaths: m.deaths ?? [],
     inputs: m.inputs ?? [],
   };
 }
