@@ -42,6 +42,47 @@ export class Playhead {
   }
 }
 
+// Self-running clock for watching a loaded macro without the game attached. Loops at
+// `durationMs`. Same base/baseAt scheme as Playhead so speed changes are continuous and
+// pause/seek interactions stay trivial. `nowFn` is injectable for tests.
+export class DemoClock {
+  constructor(durationMs, nowFn = () => performance.now()) {
+    this._now = nowFn;
+    this.duration = durationMs;
+    this.base = 0;         // song ms at the last rebase point
+    this.baseAt = nowFn(); // local clock reading at that rebase
+    this._speed = 1;
+    this.paused = false;
+  }
+
+  get ms() {
+    if (this.paused) return this.base;
+    const raw = this.base + (this._now() - this.baseAt) * this._speed;
+    return this.duration > 0 ? ((raw % this.duration) + this.duration) % this.duration : raw;
+  }
+
+  toggle() {
+    // Rebase on both edges so position is preserved exactly across pause/resume.
+    this.base = this.ms;
+    this.baseAt = this._now();
+    this.paused = !this.paused;
+  }
+
+  // Hard snap (a seek is a discontinuity, §3.5 — never lerp). Preserves paused state.
+  seek(ms) {
+    this.base = Math.min(Math.max(ms, 0), this.duration || 0);
+    this.baseAt = this._now();
+  }
+
+  get speed() { return this._speed; }
+  set speed(v) {
+    // Rebase first so `ms` is continuous at the moment of the change.
+    this.base = this.ms;
+    this.baseAt = this._now();
+    this._speed = v;
+  }
+}
+
 // An <audio>-element-backed clock for Phase 1 (no Wine): audio.currentTime is
 // sample-accurate and behaves almost identically to the in-game clock (§5.3), so render
 // logic ported to the WS playhead unchanged. Exposes the same `.ms` interface.

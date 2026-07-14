@@ -32,15 +32,11 @@ tested**; the mod (Phases 2–5's Wine side) is written and CI-buildable.
 
 ## Where the code lives
 
-Repo: `GiantWizard/gd-pjsk-overlay` on GitHub.
-Branch: **`claude/gd-note-highway-a1bh3h`** — everything in this README is on that branch;
-it has not been merged into `main` yet, so make sure you check it out (not `main`, which is
-still just the placeholder initial commit).
+Repo: `GiantWizard/gd-pjsk-overlay` on GitHub. Everything in this README is on **`main`**.
 
 ```bash
 git clone https://github.com/GiantWizard/gd-pjsk-overlay.git
 cd gd-pjsk-overlay
-git checkout claude/gd-note-highway-a1bh3h
 ```
 
 ---
@@ -71,11 +67,14 @@ highway animates immediately, gold where the run scored clean, amber/red where i
 This is the whole point of Phase 1 (§5.3): you can judge the visual design with zero GD,
 zero Wine, zero C++.
 
-Load a real `.gdr` (and optional `.telemetry.jsonl`) with the file pickers, or click
-**connect tap** to attach to the live mod over WebSocket once it's running (step 3 below).
+Load a real `.gdr`/`.gdr2` macro (and optional `.telemetry.jsonl`) with the file pickers,
+or click **connect tap** to attach to the live mod over WebSocket once it's running
+(step 3 below).
 
 Controls: toggle **companion ↔ overlay** mode, **simplify** (collapse dense bursts to
-squiggles, §3.3), **lookahead** (scroll speed), **play/pause** (demo clock).
+squiggles, §3.3), **lookahead** (scroll speed), and — when watching a loaded macro — the
+transport bar: **play/pause**, **restart**, **seek bar**, and **playback speed**
+(0.25×–2×). A live **combo counter** counts notes as they land.
 
 To develop the live-WS path without Wine, run the bundled mock tap in a second terminal
 instead of the real mod — it speaks the same wire protocol:
@@ -95,6 +94,59 @@ node analyzer/cli.js fixtures/sample.gdr.json fixtures/sample.telemetry.jsonl
 Emits a severity report (S1 death, S2 jitter/ship-saw/wave-panic/double-flip/ufo-saw) and
 annotates each note with severity for the renderer's heat-map coloring. Point it at your
 own macro + telemetry files the same way once you have real captures (step 3).
+
+Flags: `--complete` (assert the macro is a known completion), `--end-x N` (final-position
+divergence check), `--force` (analyze even when a determinism guard fails — required for
+macro-only runs with no telemetry, see below), `--tps N` (override the macro's tick rate
+if the file's header lacks one).
+
+### 2b. Watching an Eclipse-recorded `.gdr2` (the everyday flow)
+
+You don't need the C++ mod or telemetry for this — just a macro file and a browser.
+
+**Record it.** Install **Eclipse** from Geode's in-game mod browser. In a level, open
+Eclipse's menu → its Bot/Macro section → **Record**, play the attempt, **Stop**, then
+**Save** — saving matters; recording alone only keeps the macro in memory. Export/save as
+`.gdr2` (Eclipse's GDR2 binary format is fully supported here).
+
+**Find the file.** On a Wine/CrossOver/Whisky setup, Eclipse writes into the GD data dir
+*inside the prefix*, typically:
+
+```
+<prefix>/drive_c/users/<user>/AppData/Local/GeometryDash/geode/mods/eclipse.eclipse-menu/
+```
+
+e.g. for an app-bundle prefix:
+`/Applications/<YourApp>.app/Contents/SharedSupport/prefix/drive_c/users/<user>/AppData/Local/GeometryDash/...`.
+If you can't find it, save a macro and immediately run:
+
+```bash
+find "<prefix>" -newermt "-2 minutes" -type f 2>/dev/null
+```
+
+— your fresh `.gdr2` will be in the list.
+
+**Watch it.**
+
+```bash
+node scripts/serve.js          # then open http://127.0.0.1:8080/renderer/
+```
+
+Pick your `.gdr2` with the **macro** file chooser. The highway loads it on a self-running
+clock: use the transport bar to play/pause, scrub, restart, or change speed. Notes show
+as glowing boxes that flash when they land on the judgment strip; deaths recorded in the
+macro appear as red ✕ markers.
+
+**Analyze it (optional, no telemetry).**
+
+```bash
+node analyzer/cli.js "/path/to/YourMacro.gdr2" /dev/null --force
+```
+
+`/dev/null` stands in for the missing telemetry and `--force` skips the empty-telemetry
+guard. You get the macro summary (bot, TPS, note count); movement heuristics need a real
+telemetry capture (step 3). If a file has no TPS in its header, add `--tps 240` (or set
+the **tps** field next to the file picker in the browser).
 
 ### 3. The sync-tap mod (only needed for live in-game overlay / capture mode)
 
@@ -136,8 +188,8 @@ first launch as a debug session, not a sure thing.
 ## Tests
 
 ```bash
-node --test          # 35 unit tests across parsing, notes, clustering, geometry,
-                     # playhead interpolation, telemetry, determinism, and the pipeline
+node --test          # 60 unit tests across parsing (GDR/GDR2/gdph), notes, clustering,
+                     # geometry, clocks, colors, telemetry, determinism, and the pipeline
 PW_PATH=$(npm root -g)/playwright node scripts/smoke.mjs   # headless renderer smoke
 ```
 

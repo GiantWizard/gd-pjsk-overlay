@@ -21,6 +21,9 @@ export function baseColor(note) {
   if (mode === 'ball' || mode === 'swing' || mode === 'spider') return C.flip;
   if (mode === 'ship' || mode === 'wave') return C.hold;
   if (mode === 'robot' && note.type === 'hold') return C.hold;
+  // Macro-only loads (no telemetry) have gamemode null — let the note TYPE decide, so
+  // hold ribbons still read as holds instead of all rendering in the tap color.
+  if (!mode && note.type === 'hold') return C.hold;
   return C.tap; // cube, ufo, robot taps, unknown
 }
 
@@ -46,4 +49,17 @@ export function rgba(hex, a) {
   const n = parseInt(hex.slice(1), 16);
   const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
   return `rgba(${r},${g},${b},${a})`;
+}
+
+// Per-channel linear blend of two #rrggbb colors; t=0 → hexA, t=1 → hexB.
+// The skin uses mix(color, '#FFFFFF', 0.82) for the bright core band inside note boxes.
+export function mix(hexA, hexB, t) {
+  const a = parseInt(hexA.slice(1), 16);
+  const b = parseInt(hexB.slice(1), 16);
+  const ch = (shift) => {
+    const va = (a >> shift) & 255, vb = (b >> shift) & 255;
+    return Math.round(va + (vb - va) * t);
+  };
+  const to2 = (v) => v.toString(16).padStart(2, '0');
+  return `#${to2(ch(16))}${to2(ch(8))}${to2(ch(0))}`;
 }

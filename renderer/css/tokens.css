@@ -13,7 +13,8 @@
   --flag-s1:   #FF4657; /* red — critical */
   --dim:       #6B77A6; /* labels, inactive */
 
-  /* Type (§7.2). Display used ONCE (the big percent); everything else UI or data. */
+  /* Type (§7.2). Display face reserved for the two big live readouts (percent + combo) —
+     a deliberate amendment to the original "once" rule; everything else UI or data. */
   --face-display: 'Zen Maru Gothic', system-ui, sans-serif;
   --face-ui:      'Inter Tight', system-ui, sans-serif;
   --face-data:    'JetBrains Mono', ui-monospace, monospace;

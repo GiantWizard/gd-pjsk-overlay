@@ -20,12 +20,26 @@
       <button id="mode">mode: companion</button>
       <label><input type="checkbox" id="simplify" checked /> simplify</label>
       <label>look <input type="range" id="lookahead" min="600" max="3000" step="100" value="1500" /><span id="lookahead-val">1500ms</span></label>
-      <button id="playpause">play/pause</button>
       <button id="connect">connect tap</button>
       <label>macro <input type="file" id="macro-file" accept=".gdr,.json,.gdr2,.gdph" /></label>
       <label>tps <input type="number" id="fallback-tps" min="1" step="1" value="240" /></label>
       <label>telem <input type="file" id="telemetry-file" accept=".jsonl,.json" /></label>
       <span id="status" class="audio">demo</span>
+    </div>
+
+    <div class="chrome transport">
+      <button id="restart" title="restart">⟲</button>
+      <button id="playpause">play/pause</button>
+      <input type="range" id="seek" min="0" max="16500" step="10" value="0" />
+      <span id="time">0:00.0 / 0:00.0</span>
+      <select id="speed" title="playback speed">
+        <option>0.25</option><option>0.5</option><option selected>1</option>
+        <option>1.5</option><option>2</option>
+      </select>
+    </div>
+
+    <div id="combo" class="chrome" hidden>
+      <span id="combo-n">0</span><span class="combo-label">COMBO</span>
     </div>
 
     <div class="chrome header">

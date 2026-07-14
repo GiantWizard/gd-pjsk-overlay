@@ -21,7 +21,8 @@ body.overlay #stage::before {
 
 /* Header (§7.5): level title (display face) + gamemode (UI). */
 .chrome.header {
-  position: absolute; top: 18px; left: 24px; right: 24px;
+  /* sits BELOW the controls bar (top: 14px, ~52px tall) so the title never clips */
+  position: absolute; top: 74px; left: 24px; right: 24px;
   display: flex; justify-content: space-between; align-items: baseline;
   pointer-events: none; z-index: 2;
 }
@@ -41,26 +42,53 @@ body.overlay #stage::before {
 #callout.clean { color: var(--clean); }
 
 /* Control bar — dev/companion only. */
-.chrome.controls {
-  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+.chrome.controls, .chrome.transport {
+  position: absolute; left: 50%; transform: translateX(-50%);
   display: flex; gap: 10px; align-items: center; z-index: 3;
   background: rgba(10,13,26,0.7); border: 1px solid var(--rail-edge);
   border-radius: 10px; padding: 8px 12px; backdrop-filter: blur(6px);
   font-family: var(--face-ui); font-size: 13px;
 }
-.chrome.controls button, .chrome.controls label { color: #E7ECFF; }
-.chrome.controls button {
+.chrome.controls { top: 14px; }
+.chrome.transport { bottom: 78px; }
+.chrome.controls button, .chrome.controls label,
+.chrome.transport button, .chrome.transport label { color: #E7ECFF; }
+.chrome.controls button, .chrome.transport button, .chrome.transport select {
   background: var(--rail); border: 1px solid var(--rail-edge); color: #E7ECFF;
   border-radius: 7px; padding: 5px 10px; cursor: pointer; font-family: var(--face-ui);
 }
-.chrome.controls button:hover { border-color: var(--tap); }
+.chrome.controls button:hover, .chrome.transport button:hover { border-color: var(--tap); }
 .chrome.controls input[type=range] { width: 110px; }
+.chrome.transport #seek { width: 38vw; }
+.chrome.transport #time {
+  font-family: var(--face-data); font-variant-numeric: tabular-nums; font-size: 12px;
+  color: var(--dim); white-space: nowrap;
+}
+.chrome.controls button:disabled, .chrome.transport button:disabled,
+.chrome.transport input:disabled, .chrome.transport select:disabled {
+  opacity: .35; cursor: default;
+}
+
+/* Combo readout — derived note count, PJSK-style pop on each hit. */
+#combo {
+  position: absolute; right: 8%; top: 36%; text-align: center;
+  pointer-events: none; z-index: 2;
+}
+#combo #combo-n {
+  font-family: var(--face-display); font-size: 44px; display: block; line-height: 1;
+  text-shadow: 0 0 18px rgba(58,223,240,0.45);
+}
+#combo .combo-label {
+  font-family: var(--face-ui); font-size: 11px; letter-spacing: 3px; color: var(--dim);
+}
+@keyframes combo-pop { from { transform: scale(1.28); } to { transform: scale(1); } }
+#combo-n.pop { animation: combo-pop 140ms ease-out; }
 #status { font-family: var(--face-data); font-size: 12px; }
 #status.connected { color: var(--hold); }
 #status.disconnected, #status.connecting { color: var(--dim); }
 #status.audio { color: var(--tap); }
 
 @media (prefers-reduced-motion: reduce) {
-  /* JS also honors this; CSS covers any incidental transitions. */
-  * { transition: none !important; }
+  /* JS also honors this; CSS covers any incidental transitions/animations. */
+  * { transition: none !important; animation: none !important; }
 }

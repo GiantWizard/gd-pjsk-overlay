@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { deriveNotes, tagGamemodes, nearestIndex } from '../shared/notes.js';
+import { deriveNotes, tagGamemodes, nearestIndex, countAtOrBefore } from '../shared/notes.js';
 
 function macro(inputs, tps = 240) {
   return { tps, inputs: inputs.map((i) => ({ ...i, ms: (i.frame / tps) * 1000 })) };
@@ -73,4 +73,14 @@ test('nearestIndex binary search', () => {
   assert.equal(nearestIndex(arr, 12), 1);
   assert.equal(nearestIndex(arr, 16), 2);
   assert.equal(nearestIndex(arr, 100), 4);
+});
+
+test('countAtOrBefore derives a stable count from the playhead', () => {
+  const arr = [100, 200, 300, 400];
+  assert.equal(countAtOrBefore([], 500), 0);       // empty
+  assert.equal(countAtOrBefore(arr, 50), 0);       // before first
+  assert.equal(countAtOrBefore(arr, 100), 1);      // exact hit counts
+  assert.equal(countAtOrBefore(arr, 250), 2);      // between values
+  assert.equal(countAtOrBefore(arr, 400), 4);      // exact last
+  assert.equal(countAtOrBefore(arr, 9999), 4);     // after last
 });

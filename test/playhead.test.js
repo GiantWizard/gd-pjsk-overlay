@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Playhead } from '../renderer/js/playhead.js';
+import { Playhead, DemoClock } from '../renderer/js/playhead.js';
 
 // A controllable fake clock.
 function fakeClock() {
@@ -51,4 +51,57 @@ test('reset snaps hard (§3.5)', () => {
   ph.onTick({ ms: 9000, speed: 1 });
   ph.onReset(3000);
   assert.equal(ph.ms, 3000);
+});
+
+// ── DemoClock (watch-a-macro transport) ───────────────────────────────────────
+
+test('DemoClock advances in real time and loops modulo duration', () => {
+  const clock = fakeClock();
+  const dc = new DemoClock(1000, clock);
+  clock.advance(400);
+  assert.equal(dc.ms, 400);
+  clock.advance(1100);   // total 1500 → wraps at 1000
+  assert.equal(dc.ms, 500);
+});
+
+test('DemoClock seek snaps hard and clamps to [0, duration]', () => {
+  const clock = fakeClock();
+  const dc = new DemoClock(1000, clock);
+  dc.seek(700);
+  assert.equal(dc.ms, 700);
+  dc.seek(-50);
+  assert.equal(dc.ms, 0);
+  dc.seek(99999);
+  assert.equal(dc.ms, 0); // the clock loops: position `duration` ≡ 0 (the loop point)
+});
+
+test('DemoClock seek while paused stays paused at the new position', () => {
+  const clock = fakeClock();
+  const dc = new DemoClock(1000, clock);
+  dc.toggle(); // pause
+  dc.seek(300);
+  clock.advance(500);
+  assert.equal(dc.paused, true);
+  assert.equal(dc.ms, 300); // frozen at the seek target
+});
+
+test('DemoClock speed change is continuous at the moment of the change', () => {
+  const clock = fakeClock();
+  const dc = new DemoClock(10000, clock);
+  clock.advance(100);      // ms = 100 at 1×
+  dc.speed = 2;
+  clock.advance(10);       // +20 song-ms at 2×
+  assert.equal(dc.ms, 120);
+});
+
+test('DemoClock pause freezes and resume continues from the frozen point', () => {
+  const clock = fakeClock();
+  const dc = new DemoClock(10000, clock);
+  clock.advance(250);
+  dc.toggle(); // pause at 250
+  clock.advance(500);
+  assert.equal(dc.ms, 250);
+  dc.toggle(); // resume
+  clock.advance(50);
+  assert.equal(dc.ms, 300);
 });

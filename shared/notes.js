@@ -44,6 +44,9 @@ export function deriveNotes(macro, opts = {}) {
   return notes;
 }
 
+// NB: `start.phys` (GDR2 "Phys" per-input snapshot) is intentionally NOT carried onto the
+// note — the highway is a single centered lane by design, so notes have no per-note layout
+// data to derive from it.
 function makeNote(start, releaseMs, tapMax, offset) {
   const durationMs = Math.max(0, releaseMs - start.ms);
   return {
@@ -108,4 +111,14 @@ export function nearestIndex(sorted, target) {
   }
   // lo is now the first index > target; compare neighbors.
   return Math.abs(sorted[lo] - target) < Math.abs(sorted[hi] - target) ? lo : hi;
+}
+
+// Count of entries in `sorted` that are <= target. Used by the renderer to DERIVE the
+// combo count from the playhead (derived, never accumulated — so seek/restart/loop-wrap
+// all stay consistent by construction).
+export function countAtOrBefore(sorted, target) {
+  if (sorted.length === 0 || target < sorted[0]) return 0;
+  let i = nearestIndex(sorted, target);
+  if (sorted[i] > target) i--;
+  return i + 1;
 }
